@@ -1,0 +1,44 @@
+services:
+  kafka:
+    image: redpandadata/redpanda:v24.2.10
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=512M
+      - --overprovisioned
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=internal://0.0.0.0:29092,external://0.0.0.0:9092
+      - --advertise-kafka-addr=internal://kafka:29092,external://localhost:9092
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  kafka-init:
+    image: redpandadata/redpanda:v24.2.10
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - rpk topic create interactions-events-dev --brokers kafka:29092 || true
+
+  api:
+    build:
+      context: .
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__PostgresRepository: ${POSTGRES_CONNECTION_STRING:?Defina POSTGRES_CONNECTION_STRING}
+      Database__ApplyMigrationsOnStartup: "true"
+      Kafka__BootstrapServers: kafka:29092
+    ports:
+      - "5187:8080"

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../FlagsNotify.Domain/FlagsNotify.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Devices\Queries\" />
+    <Folder Include="Notifications\Queries\" />
+  </ItemGroup>
+</Project>
