@@ -1,10 +1,8 @@
 using System.Text.Json;
 using Confluent.Kafka;
 using FlagsNotify.Application.DTO;
-using FlagsNotify.Application.Notifications;
 using FlagsNotify.Application.Notifications.Commands;
 using FlagsNotify.Domain;
-using FlagsNotify.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
