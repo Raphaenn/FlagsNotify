@@ -5,6 +5,8 @@ public sealed class Notification
     public Guid Id { get; }
     public string EventId { get; }
     public string? RecipientUserId { get; }
+    public string? SenderUserId { get; }
+    public string? SenderUserName { get; }
     public string Title { get; }
     public string Body { get; }
     public DateTimeOffset OccurredAt { get; }
@@ -13,6 +15,8 @@ public sealed class Notification
         Guid id,
         string eventId,
         string? recipientUserId,
+        string? senderUserId,
+        string? senderUserName,
         string title,
         string body,
         DateTimeOffset occurredAt)
@@ -20,6 +24,8 @@ public sealed class Notification
         Id = id;
         EventId = eventId;
         RecipientUserId = recipientUserId;
+        SenderUserId = senderUserId;
+        SenderUserId = senderUserName;
         Title = title;
         Body = body;
         OccurredAt = occurredAt;
@@ -28,6 +34,8 @@ public sealed class Notification
     public static Notification Create(
         string eventId,
         string? recipientUserId,
+        string? senderUserId,
+        string? senderUserName,
         string title,
         string body,
         DateTimeOffset occurredAt)
@@ -38,6 +46,9 @@ public sealed class Notification
         string? normalizedUserId = string.IsNullOrWhiteSpace(recipientUserId)
             ? null
             : recipientUserId.Trim();
+        string? normalizedSenderId = string.IsNullOrWhiteSpace(senderUserId)
+            ? null
+            : senderUserId.Trim();
 
         if (normalizedUserId?.Length > 200)
         {
@@ -48,6 +59,8 @@ public sealed class Notification
             Guid.NewGuid(),
             normalizedEventId,
             normalizedUserId,
+            normalizedSenderId,
+            senderUserName,
             normalizedTitle,
             normalizedBody,
             occurredAt);

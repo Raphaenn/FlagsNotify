@@ -2,6 +2,7 @@ using System.Text.Json;
 using FlagsNotify.Application.Notifications;
 using FlagsNotify.Application.Notifications.Commands;
 using FlagsNotify.Domain;
+using FlagsNotify.Domain.Enuns;
 
 namespace FlagsNotify.Infrastructure.Kafka;
 
@@ -13,14 +14,8 @@ public sealed class InteractionEventDeserializer
             PropertyNameCaseInsensitive = true
         };
 
-    private readonly TimeProvider _timeProvider;
 
-    public InteractionEventDeserializer(TimeProvider timeProvider)
-    {
-        _timeProvider = timeProvider;
-    }
-
-    public DispatchNotificationCommand Deserialize(string payload)
+    public static DispatchNotificationCommand Deserialize(string payload)
     {
         InteractionEventEnvelope? interactionEvent =
             JsonSerializer.Deserialize<InteractionEventEnvelope>(payload, JsonOptions);
@@ -31,13 +26,18 @@ public sealed class InteractionEventDeserializer
         }
 
         string eventId = Required(interactionEvent.EventId, "eventId");
-        // string title = Required(interactionEvent.Title, "title");
-        // string body = Required(interactionEvent.Body, "body");
+        string eventType = Required(interactionEvent.EventType, "eventType");
+        
+        if (!Enum.TryParse<EventTypes>(eventType, true, out var types) ||
+            !Enum.IsDefined(types))
+        {
+            throw new JsonException($"Invalid event type: {eventType}");
+        }
 
-        if (string.IsNullOrWhiteSpace(interactionEvent.UserId))
+        if (string.IsNullOrWhiteSpace(interactionEvent.RecipientId))
         {
             throw new DomainValidationException(
-                "O evento deve conter userId ou expoPushToken.");
+                "O evento deve conter RecipientId.");
         }
         
         // if (string.IsNullOrWhiteSpace(interactionEvent.UserId) &&
@@ -59,11 +59,13 @@ public sealed class InteractionEventDeserializer
 
         return new DispatchNotificationCommand(
             eventId,
-            interactionEvent.UserId,
-            ExpoPushToken: "",
-            Title: "Opa",
-            Body: "dsaa",
-            interactionEvent.OccurredOn ?? _timeProvider.GetUtcNow(),
+            interactionEvent.RecipientId,
+            types,
+            interactionEvent.SenderId,
+            interactionEvent.SenderName,
+            Title: interactionEvent.Title,
+            Body: interactionEvent.Body,
+            interactionEvent.OccurredAt,
             data);
     }
 
@@ -79,13 +81,14 @@ public sealed class InteractionEventDeserializer
     }
 
     private sealed record InteractionEventEnvelope(
-        string? EventId,
-        string? EventType,
-        DateTimeOffset? OccurredOn,
-        string? UserId,
-        // string? ExpoPushToken,
-        // string? Title,
-        // string? Body,
+        string EventId,
+        string RecipientId,
+        string EventType,
+        string? SenderId,
+        string? SenderName,
+        string? Title,
+        string? Body,
+        DateTimeOffset OccurredAt,
         Dictionary<string, JsonElement>? Data
         );
 }

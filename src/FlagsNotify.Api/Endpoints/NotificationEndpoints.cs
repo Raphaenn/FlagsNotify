@@ -2,6 +2,7 @@ using System.Text.Json;
 using FlagsNotify.Application.DTO;
 using FlagsNotify.Application.Notifications;
 using FlagsNotify.Application.Notifications.Commands;
+using FlagsNotify.Domain.Enuns;
 
 namespace FlagsNotify.Api.Endpoints;
 
@@ -27,11 +28,15 @@ public static class NotificationEndpoints
                         pair => (object?)pair.Value) ??
                         new Dictionary<string, object?>();
 
+                    Enum.TryParse<EventTypes>(request.EventType, true, out var type);
+                    
                     DispatchNotificationResult result = await dispatcher.DispatchAsync(
                         new DispatchNotificationCommand(
-                            request.EventId ?? Guid.NewGuid().ToString("N"),
-                            request.UserId,
-                            request.ExpoPushToken,
+                            request.EventId,
+                            request.RecipientUserId,
+                            type,
+                            request.SenderUserId,
+                            request.SenderUserName,
                             request.Title,
                             request.Body,
                             request.OccurredAt ?? timeProvider.GetUtcNow(),

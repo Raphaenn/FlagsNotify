@@ -2,6 +2,7 @@ using FlagsNotify.Application.Abstractions;
 using FlagsNotify.Application.DTO;
 using FlagsNotify.Domain;
 using FlagsNotify.Domain.Entities;
+using FlagsNotify.Domain.Enuns;
 using FlagsNotify.Domain.Interfaces;
 using FlagsNotify.Domain.ValueObjects;
 
@@ -14,7 +15,8 @@ public sealed class DispatchNotificationCommandHandler
 
     public DispatchNotificationCommandHandler(
         IDeviceRepository devicesRepository,
-        IPushNotificationSender pushSender)
+        IPushNotificationSender pushSender
+        )
     {
         _devicesRepository = devicesRepository;
         _pushSender = pushSender;
@@ -24,16 +26,34 @@ public sealed class DispatchNotificationCommandHandler
         DispatchNotificationCommand command,
         CancellationToken cancellationToken)
     {
+        // todo -> By event type we should define notification title and body
+        // todo -> search user name by id. 
+        
+        string title = command.EventType switch
+        {
+            EventTypes.HandleLike => $"You got a like from {command.SenderName}",
+            EventTypes.ReceiveDm => $"New dm message from {command.SenderName}",
+            _ => "New notification"
+        };
+
+        /*
+         * Types:
+         *    - HandleLike
+         *    - Receive direct
+         */
+        
         Notification notification = Notification.Create(
             command.EventId,
-            command.UserId,
-            command.Title,
-            command.Body,
+            command.RecipientId,
+            command.SenderId,
+            command.SenderName,
+            title,
+            command.Body ?? "New notification",
             command.OccurredAt);
 
         IReadOnlyCollection<ExpoPushToken> tokens = await ResolveRecipientsAsync(
-            command.UserId,
-            command.ExpoPushToken,
+            command.RecipientId,
+            null,
             cancellationToken);
 
         if (tokens.Count == 0)

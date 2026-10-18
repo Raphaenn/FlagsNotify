@@ -81,7 +81,7 @@ public sealed class KafkaInteractionConsumer : BackgroundService
         try
         {
             DispatchNotificationCommand command =
-                _deserializer.Deserialize(result.Message.Value);
+                InteractionEventDeserializer.Deserialize(result.Message.Value);
 
             await using AsyncServiceScope scope = _scopeFactory.CreateAsyncScope();
             DispatchNotificationCommandHandler commandHandler =
