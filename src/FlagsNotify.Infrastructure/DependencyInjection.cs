@@ -36,6 +36,7 @@ public static class DependencyInjection
                     "__flagsnotify_migrations_history")));
 
         services.AddScoped<IDeviceRepository, DeviceRegistrationRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
         services.AddOptions<ExpoPushOptions>()
             .Bind(configuration.GetSection(ExpoPushOptions.SectionName))

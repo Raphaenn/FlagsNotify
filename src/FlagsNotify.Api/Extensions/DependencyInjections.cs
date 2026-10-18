@@ -16,6 +16,7 @@ public static class DependencyInjections
         // service.AddScoped<IDeviceRepository, DeviceRegistrationRepository>();
         // service.AddScoped<IPushNotificationSender, PushNotificationSender>();
         service.AddScoped<DispatchNotificationCommandHandler>();
+        service.AddScoped<NotificationInboxService>();
 
         return service;
     }

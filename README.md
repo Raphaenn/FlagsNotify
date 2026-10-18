@@ -52,6 +52,7 @@ export Kafka__GroupId=flags-notify
 export Kafka__Topics__0=interactions-events-dev
 export ExpoPush__AccessToken=seu-token-opcional
 export ConnectionStrings__PostgresRepository='Host=localhost;Port=5432;Username=admin;Password=<sua-senha>;Database=flags;'
+export Jwt__SigningKey='<a-mesma-chave-usada-pelo-FlagUsers>'
 ```
 
 Para SASL, configure também:
@@ -73,7 +74,8 @@ Nunca versionar credenciais. Em produção, injete-as por secret manager.
 
 Os tokens ficam na tabela `user_push_devices`, separada da tabela `users`. O
 campo `user_id` mantém o vínculo lógico com o usuário e permite vários aparelhos
-ativos para o mesmo usuário. O FlagsNotify usa uma tabela de histórico de
+ativos para o mesmo usuário. A inbox fica na tabela `notifications`, com índice
+por destinatário/data e controle de leitura. O FlagsNotify usa uma tabela de histórico de
 migrations própria: `__flagsnotify_migrations_history`.
 
 Em `Development`, `Database:ApplyMigrationsOnStartup` está habilitado e a API
@@ -104,20 +106,22 @@ O tópico inicial é `interactions-events-dev`. Cada mensagem deve ser JSON:
 ```json
 {
   "eventId": "interaction-01J...",
-  "eventType": "interaction.created",
+  "eventType": "HandleLike",
   "occurredAt": "2026-07-30T15:00:00Z",
-  "userId": "user-123",
+  "recipientId": "user-123",
+  "senderId": "user-456",
+  "senderName": "Maria",
   "title": "Nova interação",
   "body": "Você recebeu uma nova mensagem.",
   "data": {
     "interactionId": "interaction-456",
-    "screen": "InteractionDetails"
+    "route": "/(tabs)/(home)/home"
   }
 }
 ```
 
-O consumidor resolve os tokens ativos pelo `userId`. Como alternativa, o evento
-pode trazer `expoPushToken` diretamente e omitir `userId`.
+O consumidor resolve os tokens ativos pelo `recipientId`. Mesmo sem aparelho
+registrado, a notificação é persistida para aparecer na inbox do aplicativo.
 
 O processamento é *at least once*: o offset só é confirmado depois do envio.
 Uma falha transitória faz o consumidor tentar o mesmo evento novamente. Portanto,
@@ -147,17 +151,32 @@ Este endpoint permite validar o fluxo sem publicar no Kafka:
 curl -X POST http://localhost:5187/api/v1/notifications \
   -H 'Content-Type: application/json' \
   -d '{
-    "userId": "user-123",
+    "eventId": "manual-test-1",
+    "eventType": "HandleLike",
+    "recipientUserId": "user-123",
+    "senderUserId": "user-456",
+    "senderUserName": "Maria",
     "title": "Teste",
     "body": "FlagsNotify está funcionando.",
     "data": {
-      "screen": "Home"
+      "route": "/(tabs)/(home)/home"
     }
   }'
 ```
 
-Proteja os endpoints com autenticação/autorização antes de expor a API
-publicamente.
+## Inbox REST
+
+Os endpoints da inbox exigem o JWT emitido pelo FlagUsers no header
+`Authorization: Bearer <token>`:
+
+- `GET /api/v1/notifications?cursor=...&size=20`
+- `GET /api/v1/notifications/unread-count`
+- `PATCH /api/v1/notifications/{notificationId}/read`
+- `PATCH /api/v1/notifications/read-all`
+- `DELETE /api/v1/notifications/{notificationId}`
+
+Configure `Jwt:SigningKey`, `Jwt:Issuer` e `Jwt:Audience` com os mesmos valores
+do emissor. A chave deve vir de variável de ambiente ou secret manager.
 
 ## Testes e cobertura
 

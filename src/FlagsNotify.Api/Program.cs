@@ -9,6 +9,7 @@ using Google.Apis.Auth.OAuth2;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.RegisterServices(builder.Configuration);
+builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 
@@ -21,6 +22,8 @@ builder.Services.AddSwaggerGen();
 WebApplication app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {
